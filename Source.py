@@ -2,9 +2,7 @@ import sys, os
 from typing import List
 import numpy as np
 from global_variables import Respons, Item, Range,\
-                             Coordinate, Element,\
-                             CLIENTID, SOURCE_IDS,\
-                             ELEMENTS, DATE_RANGE
+                             Coordinate, Element
 
 import requests # See http://docs.python-requests.org/
 
@@ -34,8 +32,8 @@ class Source:
 
         return cls(id,name,location,county,country)
     
-    def get_time_series_info(self) -> bool:
-        r: Respons = self.request_timeseries_info(self.id)
+    def get_time_series_info(self, client_id, elements) -> bool:
+        r: Respons = self.request_timeseries_info(client_id, self.id, elements)
 
         # extract some data from the response
         if r.status_code == 200:
@@ -82,35 +80,43 @@ class Source:
                             )
 
 
-    def request_timeseries_info(self, source_id: str) -> Respons:
+    def request_timeseries_info(self, client_id: str, source_id: str, elements: List[str]) -> Respons:
         '''Send a get request for the available time series from <source_id>, 
         returns the respons which is a dictinoary'''
         # issue an HTTP GET request
         return requests.get('https://frost.met.no/observations/availableTimeSeries/v0.jsonld',
-                           {'sources': source_id, 'elements': ','.join(ELEMENTS)},
-                            auth=(CLIENTID, '')
+                           {'sources': source_id, 'elements': ','.join(elements)},
+                            auth=(client_id, '')
     )
 
 
-def request_source_info(source_ids: str) -> Respons:
+def request_source_info(client_id: str, source_ids: str = None, county: str = None) -> Respons:
     '''Send a get request for info about <source_id>, 
     returns the respons which is a dictinoary'''
+    params = dict()
+    
+    if source_ids:
+        params['ids'] = source_ids
+    if county:
+        params['county'] = county
+    
     # issue an HTTP GET request
     return requests.get(
         'https://frost.met.no/sources/v0.jsonld',
-        {'ids': source_ids},
-        auth=(CLIENTID, '')
+        params,
+        auth=(client_id, '')
     )
+    
         
 
-def create_sources() -> Source:
-    r: Respons = request_source_info(SOURCE_IDS)
+def create_sources(client_id, elements, source_ids: str = None, county: str = None) -> Source:
+    r: Respons = request_source_info(client_id, source_ids = source_ids, county=county)
     # Create source objects
     if r.status_code == 200:
         sources: List[Source] = []
         for item in r.json()['data']:
             source = Source.from_response_item(item)
-            if source.get_time_series_info():
+            if source.get_time_series_info(client_id, elements):
                 sources.append(source)
                 print(source.name)
         
