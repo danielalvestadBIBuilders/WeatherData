@@ -47,10 +47,10 @@ class Source:
                 hight_above_ground = item['level']['value']               if ('level' in item and 'value' in item['level']) else None
             
                 self.elements.append(Element(element_id, valid_from, valid_to, offset, resolution, unit, hight_above_ground))
-            
+
             return True
         else:
-            api_error(r)
+            #api_error(r)
             return False
 
     
@@ -90,7 +90,7 @@ class Source:
     )
 
 
-def request_source_info(client_id: str, source_ids: str = None, county: str = None) -> Respons:
+def request_source_info(client_id: str, source_ids: str = None, county: str = None, country: str = None) -> Respons:
     '''Send a get request for info about <source_id>, 
     returns the respons which is a dictinoary'''
     params = dict()
@@ -99,7 +99,10 @@ def request_source_info(client_id: str, source_ids: str = None, county: str = No
         params['ids'] = source_ids
     if county:
         params['county'] = county
-    
+    if country:
+        params['country'] = country
+
+
     # issue an HTTP GET request
     return requests.get(
         'https://frost.met.no/sources/v0.jsonld',
@@ -109,8 +112,8 @@ def request_source_info(client_id: str, source_ids: str = None, county: str = No
     
         
 
-def create_sources(client_id, elements, source_ids: str = None, county: str = None) -> Source:
-    r: Respons = request_source_info(client_id, source_ids = source_ids, county=county)
+def create_sources(client_id, elements, source_ids: str = None, county: str = None, country: str = None) -> Source:
+    r: Respons = request_source_info(client_id, source_ids = source_ids, county = county, country = country)
     # Create source objects
     if r.status_code == 200:
         sources: List[Source] = []
